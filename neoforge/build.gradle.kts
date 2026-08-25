@@ -37,6 +37,7 @@ configurations {
 
 repositories {
     maven("https://maven.neoforged.net/releases/")
+    maven("https://maven.shedaniel.me/") // Cloth Config
 }
 
 loom {
@@ -47,6 +48,7 @@ loom {
 // `common` - see the same comment in fabric/build.gradle.kts.
 val neoforgeVersion = common.property("neoforgeVersion") as String
 val architecturyApiVersion = common.property("architecturyApiVersion") as String
+val clothConfigVersion = common.property("clothConfigVersion") as String
 
 dependencies {
     minecraft("com.mojang:minecraft:$minecraft")
@@ -54,6 +56,12 @@ dependencies {
 
     "neoForge"("net.neoforged:neoforge:$neoforgeVersion")
     modImplementation("dev.architectury:architectury-neoforge:$architecturyApiVersion")
+
+    // Optional/soft dependency: compile against it, and have it on the dev
+    // run's classpath, but don't bundle it or require it at runtime - see
+    // the "cloth-config" entry in neoforge.mods.toml.
+    modCompileOnly("me.shedaniel.cloth:cloth-config-neoforge:$clothConfigVersion")
+    modLocalRuntime("me.shedaniel.cloth:cloth-config-neoforge:$clothConfigVersion")
 
     commonBundle(project(common.path, "namedElements")) { isTransitive = false }
     shadowBundle(project(common.path, "transformProductionNeoForge")) { isTransitive = false }

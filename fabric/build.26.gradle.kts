@@ -35,11 +35,16 @@ configurations {
     named("developmentFabric").get().extendsFrom(commonBundle)
 }
 
+repositories {
+    maven("https://maven.shedaniel.me/") // Cloth Config
+}
+
 // See the comment in fabric/build.gradle.kts: these live in
 // versions/26.2/gradle.properties, only an ancestor of `common`.
 val fabricLoaderVersion = common.property("fabricLoaderVersion") as String
 val fabricApiVersion = common.property("fabricApiVersion") as String
 val architecturyApiVersion = common.property("architecturyApiVersion") as String
+val clothConfigVersion = common.property("clothConfigVersion") as String
 
 dependencies {
     // No `mappings(...)` here - see the header comment above.
@@ -48,6 +53,12 @@ dependencies {
     implementation("net.fabricmc:fabric-loader:$fabricLoaderVersion")
     implementation("net.fabricmc.fabric-api:fabric-api:$fabricApiVersion")
     implementation("dev.architectury:architectury-fabric:$architecturyApiVersion")
+
+    // Optional/soft dependency: compile against it, and have it on the dev
+    // run's classpath, but don't bundle it or require it at runtime - see
+    // the "cloth-config" entry in fabric.mod.json.
+    compileOnly("me.shedaniel.cloth:cloth-config-fabric:$clothConfigVersion")
+    localRuntime("me.shedaniel.cloth:cloth-config-fabric:$clothConfigVersion")
 
     commonBundle(project(common.path)) { isTransitive = false }
     shadowBundle(project(common.path, "transformProductionFabric")) { isTransitive = false }

@@ -37,12 +37,14 @@ configurations {
 
 repositories {
     maven("https://maven.neoforged.net/releases/")
+    maven("https://maven.shedaniel.me/") // Cloth Config
 }
 
 // These live in versions/26.2/gradle.properties, only an ancestor of
 // `common` - see the same comment in fabric/build.gradle.kts.
 val neoforgeVersion = common.property("neoforgeVersion") as String
 val architecturyApiVersion = common.property("architecturyApiVersion") as String
+val clothConfigVersion = common.property("clothConfigVersion") as String
 
 dependencies {
     // No `mappings(...)` here - see the header comment above.
@@ -50,6 +52,12 @@ dependencies {
 
     "neoForge"("net.neoforged:neoforge:$neoforgeVersion")
     implementation("dev.architectury:architectury-neoforge:$architecturyApiVersion")
+
+    // Optional/soft dependency: compile against it, and have it on the dev
+    // run's classpath, but don't bundle it or require it at runtime - see
+    // the "cloth-config" entry in neoforge.mods.toml.
+    compileOnly("me.shedaniel.cloth:cloth-config-neoforge:$clothConfigVersion")
+    localRuntime("me.shedaniel.cloth:cloth-config-neoforge:$clothConfigVersion")
 
     commonBundle(project(common.path)) { isTransitive = false }
     shadowBundle(project(common.path, "transformProductionNeoForge")) { isTransitive = false }

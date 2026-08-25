@@ -36,6 +36,7 @@ configurations {
 
 repositories {
     maven("https://maven.minecraftforge.net/")
+    maven("https://maven.shedaniel.me/") // Cloth Config
 }
 
 loom {
@@ -46,6 +47,7 @@ loom {
 // `common` - see the same comment in fabric/build.gradle.kts.
 val forgeVersion = common.property("forgeVersion") as String
 val architecturyApiVersion = common.property("architecturyApiVersion") as String
+val clothConfigVersion = common.property("clothConfigVersion") as String
 
 dependencies {
     minecraft("com.mojang:minecraft:$minecraft")
@@ -53,6 +55,12 @@ dependencies {
 
     "forge"("net.minecraftforge:forge:$forgeVersion")
     modImplementation("dev.architectury:architectury-forge:$architecturyApiVersion")
+
+    // Optional/soft dependency: compile against it, and have it on the dev
+    // run's classpath, but don't bundle it or require it at runtime - see
+    // the "cloth-config" entry in mods.toml.
+    modCompileOnly("me.shedaniel.cloth:cloth-config-forge:$clothConfigVersion")
+    modLocalRuntime("me.shedaniel.cloth:cloth-config-forge:$clothConfigVersion")
 
     commonBundle(project(common.path, "namedElements")) { isTransitive = false }
     shadowBundle(project(common.path, "transformProductionForge")) { isTransitive = false }

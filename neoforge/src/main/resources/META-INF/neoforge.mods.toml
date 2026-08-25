@@ -22,3 +22,10 @@ type = "required"
 versionRange = "[${minecraft_version},)"
 ordering = "NONE"
 side = "BOTH"
+
+# Optional/soft dependency - see neoforge/build.gradle.kts.
+[[dependencies.${mod_id}]]
+modId = "cloth-config"
+type = "optional"
+ordering = "NONE"
+side = "BOTH"

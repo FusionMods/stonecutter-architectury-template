@@ -34,18 +34,23 @@ configurations {
     named("developmentFabric").get().extendsFrom(commonBundle)
 }
 
+repositories {
+    maven("https://maven.shedaniel.me/") // Cloth Config
+}
+
 loom {
     silentMojangMappingsLicense()
 }
 
-// javaVersion/fabricLoaderVersion/fabricApiVersion/architecturyApiVersion
-// live in versions/<mcVersion>/gradle.properties, which - unlike this
-// repo's root gradle.properties - is only an ancestor directory of the
-// `common` project, not of `fabric`/`forge`/`neoforge`. Route through the
-// sibling `common` project to read them.
+// javaVersion/fabricLoaderVersion/fabricApiVersion/architecturyApiVersion/
+// clothConfigVersion live in versions/<mcVersion>/gradle.properties, which -
+// unlike this repo's root gradle.properties - is only an ancestor directory
+// of the `common` project, not of `fabric`/`forge`/`neoforge`. Route through
+// the sibling `common` project to read them.
 val fabricLoaderVersion = common.property("fabricLoaderVersion") as String
 val fabricApiVersion = common.property("fabricApiVersion") as String
 val architecturyApiVersion = common.property("architecturyApiVersion") as String
+val clothConfigVersion = common.property("clothConfigVersion") as String
 
 dependencies {
     minecraft("com.mojang:minecraft:$minecraft")
@@ -54,6 +59,12 @@ dependencies {
     modImplementation("net.fabricmc:fabric-loader:$fabricLoaderVersion")
     modImplementation("net.fabricmc.fabric-api:fabric-api:$fabricApiVersion")
     modImplementation("dev.architectury:architectury-fabric:$architecturyApiVersion")
+
+    // Optional/soft dependency: compile against it, and have it on the dev
+    // run's classpath, but don't bundle it or require it at runtime - see
+    // the "cloth-config" entry in fabric.mod.json.
+    modCompileOnly("me.shedaniel.cloth:cloth-config-fabric:$clothConfigVersion")
+    modLocalRuntime("me.shedaniel.cloth:cloth-config-fabric:$clothConfigVersion")
 
     commonBundle(project(common.path, "namedElements")) { isTransitive = false }
     shadowBundle(project(common.path, "transformProductionFabric")) { isTransitive = false }
