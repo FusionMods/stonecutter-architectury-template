@@ -8,6 +8,9 @@ versions at once - **1.20.1**, **1.21.1**, and **26.2** - across **Fabric**, **N
 |---|---|---|---|
 | 1.20.1 | ✅ | - | ✅ |
 | 1.21.1 | ✅ | ✅ | - |
+| 26.1   | ✅ | ✅ | - |
+| 26.1.1   | ✅ | ✅ | - |
+| 26.1.2   | ✅ | ✅ | - |
 | 26.2   | ✅ | ✅ | - |
 
 Every one of those six combinations has been built end-to-end as part of setting this template up (real

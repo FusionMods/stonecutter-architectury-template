@@ -33,36 +33,19 @@ stonecutter {
     kotlinController = true
 
     create(rootProject) {
-        // The root src/ (this repo's `common` project) is copied once per
-        // version listed here.
         versions("1.20.1", "1.21.1")
-        // Minecraft removed Java Edition obfuscation starting with 26.x, so
-        // there's nothing left for Loom to remap - common/, fabric/ and
-        // neoforge/ all give the 26.2 node its own build.26.gradle.kts
-        // using the `dev.architectury.loom-no-remap` variant instead of the
-        // regular one. See build.26.gradle.kts and README.md.
-        versions("26.2").buildscript("build.26.gradle.kts")
+        versions("26.1", "26.1.1", "26.1.2", "26.2").buildscript("build.26.gradle.kts")
 
-        // Each branch below is itself copied once per version it lists
-        // (or every root version, if none are listed) - so e.g. `fabric`
-        // becomes versions/1.20.1/fabric, versions/1.21.1/fabric, etc.
         branch("fabric") {
             inherit()
-            versions("26.2").buildscript("build.26.gradle.kts")
+            versions("26.1", "26.1.1", "26.1.2", "26.2").buildscript("build.26.gradle.kts")
         }
-        // NeoForge only for 1.21.1 and 26.2: NeoForge on 1.20.1 is,
-        // internally, still Forge on 1.20.1 (same SRG-based toolchain, pre-
-        // dating NeoForge's own package/coordinate rename), and hitting an
-        // open, unresolved Architectury Loom bug when set up that way
-        // (architectury/architectury-loom#289) - see README.md. 1.20.1 is
-        // also the last version where Forge and NeoForge mods are
-        // interchangeable, so the forge/ build below already covers it.
+        
         branch("neoforge") {
             versions("1.21.1")
-            versions("26.2").buildscript("build.26.gradle.kts")
+            versions("26.1", "26.1.1", "26.1.2", "26.2").buildscript("build.26.gradle.kts")
         }
-        // Forge is wired up for 1.20.1 only: it's still fully interoperable
-        // with NeoForge there, but lags behind on newer versions - see README.
+        
         branch("forge") { versions("1.20.1") }
 
         vcsVersion = "1.21.1"
