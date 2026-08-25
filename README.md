@@ -87,10 +87,10 @@ add both the file and the `modLicense` value before publishing anything.
 ├── forge/      src/.../forge/ExampleModForge.java                   # Forge entry point + mods.toml (1.20.1 only)
 ├── neoforge/   src/.../neoforge/ExampleModNeoForge.java              # NeoForge entry point + neoforge.mods.toml
 ├── versions/<mcVersion>/gradle.properties   # per-version dependency numbers (see "Building" below)
-├── build.gradle.kts            # "common" build script for 1.20.1 & 1.21.1 (26.2 uses build.26.gradle.kts)
-├── fabric/build.gradle.kts     # Fabric build script for 1.20.1 & 1.21.1 (26.2 uses fabric/build.26.gradle.kts)
+├── build.gradle.kts            # "common" build script for 1.20.1 & 1.21.1 (26.1+ uses build.26.gradle.kts)
+├── fabric/build.gradle.kts     # Fabric build script for 1.20.1 & 1.21.1 (26.1+ uses fabric/build.26.gradle.kts)
 ├── forge/build.gradle.kts      # Forge build script (1.20.1 only)
-├── neoforge/build.gradle.kts   # NeoForge build script for 1.21.1 (26.2 uses neoforge/build.26.gradle.kts)
+├── neoforge/build.gradle.kts   # NeoForge build script for 1.21.1 (26.1+ uses neoforge/build.26.gradle.kts)
 ├── settings.gradle.kts         # declares the versions/loaders matrix - start reading here
 └── stonecutter.gradle.kts      # shared plugin versions + the "active" version
 ```
@@ -132,8 +132,8 @@ Two real, current repos informed this (both from the Stonecutter team):
 
 Both are called out inline in the affected build scripts too.
 
-**1. 26.2 needs a different Loom variant, because Minecraft removed obfuscation.** Starting with the 26.x
-(year.drop) versions, Java Edition [ships without
+**1. 26.1+ needs a different Loom variant, because Minecraft removed obfuscation.** 
+Starting with the 1.21.11 versions, Java Edition [ships without
 obfuscation](https://www.minecraft.net/en-us/article/removing-obfuscation-in-java-edition) - there's no
 Mojang-mappings deobfuscation step left to run, which is exactly what Architectury Loom's ordinary
 `officialMojangMappings()` path tries to do, and currently can't
