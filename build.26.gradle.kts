@@ -26,6 +26,7 @@ architectury.common(stonecutter.tree.branches.mapNotNull {
 })
 
 val fabricLoaderVersion: String by project
+val architecturyApiVersion: String by project
 
 dependencies {
     // No `mappings(...)` here - see the comment above.
@@ -35,6 +36,11 @@ dependencies {
     // @EnvironmentInterface annotations. Do NOT use any other Fabric
     // Loader class from common code.
     implementation("net.fabricmc:fabric-loader:$fabricLoaderVersion")
+
+    // The loader-agnostic Architectury API (registries, events, networking,
+    // ...) - fabric/forge/neoforge each additionally pull in their own
+    // dev.architectury:architectury-<loader> implementation of this.
+    implementation("dev.architectury:architectury:$architecturyApiVersion")
 }
 
 java {
