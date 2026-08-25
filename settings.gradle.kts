@@ -33,19 +33,30 @@ stonecutter {
     kotlinController = true
 
     create(rootProject) {
-        versions("1.20.1", "1.21.1")
+        versions(
+            "1.20.1", "1.20.2", "1.20.4", "1.20.5", "1.20.6",
+            // 1.20.3 is deliberately skipped - Architectury API never published
+            // a Fabric API/NeoForge-backed release for it (only a Fabric-only
+            // beta, since 1.20.4 followed two days later), so it fails this
+            // template's "needs supported Fabric + NeoForge + Architectury"
+            // bar. See README.md.
+            "1.21.1", "1.21.2", "1.21.3", "1.21.4", "1.21.5", "1.21.6", "1.21.7", "1.21.8", "1.21.9", "1.21.10",
+        )
         versions("26.1", "26.1.1", "26.1.2", "26.2").buildscript("build.26.gradle.kts")
 
         branch("fabric") {
             inherit()
             versions("26.1", "26.1.1", "26.1.2", "26.2").buildscript("build.26.gradle.kts")
         }
-        
+
         branch("neoforge") {
-            versions("1.21.1")
+            versions(
+                "1.20.2", "1.20.4", "1.20.5", "1.20.6",
+                "1.21.1", "1.21.2", "1.21.3", "1.21.4", "1.21.5", "1.21.6", "1.21.7", "1.21.8", "1.21.9", "1.21.10",
+            )
             versions("26.1", "26.1.1", "26.1.2", "26.2").buildscript("build.26.gradle.kts")
         }
-        
+
         branch("forge") { versions("1.20.1") }
 
         vcsVersion = "1.21.1"
