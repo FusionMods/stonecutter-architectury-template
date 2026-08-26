@@ -4,6 +4,7 @@ plugins {
     id("dev.architectury.loom")
     id("architectury-plugin")
     id("com.gradleup.shadow")
+    id("me.modmuss50.mod-publish-plugin") version "2.2.0"
 }
 
 val minecraft = stonecutter.current.version
@@ -121,4 +122,31 @@ tasks.register<Copy>("buildAndCollect") {
     from(tasks.remapJar.get().archiveFile, tasks.remapSourcesJar.get().archiveFile)
     into(rootProject.layout.buildDirectory.file("libs/$modVersion/forge"))
     dependsOn("build")
+}
+
+// Publishes this exact version+loader's jar to Modrinth/CurseForge - see
+// stonecutter.gradle.kts's publishAllMods for running every variant's at once, and
+// gradle.properties for the project IDs/dry-run switch this reads.
+val modrinthProjectId: String by project
+val curseforgeProjectId: String by project
+
+publishMods {
+    file.set(tasks.remapJar.flatMap { it.archiveFile })
+    changelog.set(providers.environmentVariable("CHANGELOG").orElse("See the commit history."))
+    type.set(STABLE)
+    modLoaders.add("forge")
+    dryRun.set(providers.gradleProperty("publish.dryRun").map(String::toBoolean).orElse(true))
+
+    modrinth {
+        projectId.set(modrinthProjectId)
+        accessToken.set(providers.environmentVariable("MODRINTH_TOKEN"))
+        minecraftVersions.add(minecraft)
+    }
+    curseforge {
+        projectId.set(curseforgeProjectId)
+        accessToken.set(providers.environmentVariable("CURSEFORGE_TOKEN"))
+        minecraftVersions.add(minecraft)
+        client.set(true)
+        server.set(true)
+    }
 }

@@ -42,6 +42,18 @@ cd <your fork>
 ./gradlew build          # builds every loader for the "active" version - see stonecutter.gradle.kts
 ```
 
+Building all:
+```sh
+./gradlew chiseledBuild --no-parallel
+```
+
+Publishing all:
+```sh
+./gradlew publishAllMods -Ppublish.dryRun=false
+```
+Ensure that you have set the `modrinthProjectId` and `curseforgeProjectId` in `gradle.properties`, and that you have the `MODRINTH_TOKEN` and `CURSEFORGE_TOKEN` environment variables set before running the publish command.
+
+
 Then run it:
 
 ```sh
