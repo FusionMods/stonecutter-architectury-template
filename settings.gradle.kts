@@ -28,6 +28,13 @@ plugins {
 
 rootProject.name = "examplemod"
 
+// A plain, standalone Gradle module - deliberately NOT part of the stonecutter {} block
+// below, so it's outside the version/loader matrix entirely. See datagen/build.gradle.kts
+// and README.md's "Data generation" section for why: it's a dev-time-only tool pinned to
+// one fixed Minecraft version, producing static JSON shared by every version/loader rather
+// than needing to compile against all of them.
+include("datagen")
+
 stonecutter {
     centralScript = "build.gradle.kts"
     kotlinController = true

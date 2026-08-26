@@ -32,3 +32,10 @@ replay_*.log
 
 # Never ignore the wrapper jar even though *.jar is ignored via `build/`.
 !gradle/wrapper/gradle-wrapper.jar
+
+.architectury-transformer/
+
+# datagen/'s own output - copyGenerated (see datagen/build.gradle.kts) copies it into
+# fabric/, forge/ and neoforge/'s real resources, which ARE committed; this raw copy is
+# just runDatagen's scratch space and would only go stale sitting here uncommitted anyway.
+datagen/src/main/generated/

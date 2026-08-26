@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "id": "examplemod",
+  "version": "1.0.0",
+  "name": "Example Mod (datagen)",
+  "description": "Dev-time-only data generation for Example Mod - never published, not a real mod, never runs alongside the real one. Shares its id (see README.md's \"Data generation\" section) purely so Fabric's datagen tooling namespaces generated files under examplemod instead of examplemod-datagen.",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "com.example.examplemod.datagen.ExampleModDataGenerator"
+    ],
+    "fabric-datagen": [
+      "com.example.examplemod.datagen.ExampleModDataGenerator"
+    ]
+  },
+  "depends": {
+    "fabricloader": "*",
+    "fabric-api": "*",
+    "minecraft": "*"
+  }
+}

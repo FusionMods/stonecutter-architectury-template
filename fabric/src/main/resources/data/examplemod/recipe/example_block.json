@@ -1,0 +1,22 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "building",
+  "ingredients": [
+    {
+      "item": "examplemod:example_item"
+    },
+    {
+      "item": "examplemod:example_item"
+    },
+    {
+      "item": "examplemod:example_item"
+    },
+    {
+      "item": "examplemod:example_item"
+    }
+  ],
+  "result": {
+    "count": 1,
+    "id": "examplemod:example_block"
+  }
+}

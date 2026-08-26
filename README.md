@@ -76,28 +76,42 @@ called by whichever loader you ran. From there:
    commands above/below instead of a visual switcher.
 3. **Add real content** in `src/main/java/com/example/examplemod/`, using
    [Architectury API](https://docs.architectury.dev/)'s cross-loader registries/events/networking so it
-   stays shared across all three loaders. See "What's deliberately not here yet" below.
+   stays shared across all three loaders. See "Adding content" below.
 
 ## Using this template
 
 Everything is currently named after the placeholder `ExampleMod`/`examplemod`/`com.example.examplemod`.
-To rename it:
+Rename it before writing any real code, so names don't shift under you:
 
-1. **`gradle.properties`**: set `modId`, `modGroup`, `modVersion`, `modName`, `modDescription`,
+```sh
+python3 setup.py                # interactive prompts for modId/modGroup/modName/...
+python3 setup.py --dry-run      # preview the plan first, change nothing
+```
+
+This automates everything a rename touches:
+
+1. **`gradle.properties`**: sets `modId`, `modGroup`, `modVersion`, `modName`, `modDescription`,
    `modAuthors`. These flow into `fabric.mod.json`/`mods.toml`/`neoforge.mods.toml` at build time - no
    other file needs your mod's display name or description.
-2. **`settings.gradle.kts`**: change `rootProject.name`.
-3. **The package**: move `com/example/examplemod/` to your own package in all four source trees
-   (`src/`, `fabric/src/`, `forge/src/`, `neoforge/src/`) and update the `package`/`import` lines in the
-   four Java files to match.
-4. **The classes**: rename `ExampleMod`/`ExampleModFabric`/`ExampleModForge`/`ExampleModNeoForge` to
-   whatever you like, and update the one place each is referenced by string: the fabric `entrypoints` in
-   `fabric/src/main/resources/fabric.mod.json`, and `MOD_ID` in `ExampleMod.java` - keep that constant in
-   sync with `modId` from step 1.
-5. Pick a real license (see below) and replace this README with one about your actual mod.
+2. **`settings.gradle.kts`**: updates `rootProject.name`.
+3. **The package**: moves `com/example/examplemod/` to your own package in all four source trees
+   (`src/`, `fabric/src/`, `forge/src/`, `neoforge/src/`) and updates every `package`/`import` line to
+   match, including the `block`/`client`/`registry` sub-packages under `src/`.
+4. **The classes**: renames `ExampleMod`/`ExampleModFabric`/`ExampleModForge`/`ExampleModNeoForge` and
+   their `*Client` counterparts to whatever you like, and updates the one place each is referenced by
+   string: the fabric `entrypoints` in `fabric/src/main/resources/fabric.mod.json`, and `MOD_ID` in
+   the renamed main class, kept in sync with `modId`.
 
-A single project-wide search-and-replace for `examplemod`/`ExampleMod`/`com.example.examplemod` covers
-essentially all of the above at once.
+It's a plain-stdlib Python script (no dependencies), prints its full plan before touching anything, and
+is safe to re-run (fields you don't change are no-ops). Run it without `--yes` and it asks for
+confirmation once you've reviewed the plan; `git status` first if you want an easy way to review/undo
+the result afterward.
+
+Still worth doing by hand, since neither the script nor anything else here can reasonably automate them:
+
+5. Pick a real license (see below) and replace this README with one about your actual mod.
+6. Check `versions/<mcVersion>/gradle.properties` for stale dependency numbers before your first real
+   build (see "Building" below).
 
 No `LICENSE` file is included - `modLicense` is left as the placeholder `ARR` (all rights reserved).
 Pick a real license (MIT, LGPL-3.0, CC0, ...) via [choosealicense.com](https://choosealicense.com/) and
@@ -216,11 +230,205 @@ at [files.minecraftforge.net](https://files.minecraftforge.net/), Architectury A
    [wiki](https://stonecutter.kikugie.dev/wiki/) for the syntax) rather than duplicating files - that's
    the entire point of this structure.
 
-## What's deliberately not here yet
+## Adding content
 
-This is a template, not a mod: no items, blocks, or registries. `ExampleMod.init()` just logs. Add real
-content in `src/main/java/com/example/examplemod/` using
-[Architectury API](https://docs.architectury.dev/)'s cross-loader registries/events/networking so it stays
-shared across all three loaders; reach for the loader-specific `fabric/`/`forge/`/`neoforge/` source trees
-only for genuinely loader-specific code (client rendering registration, loader-specific events, and so
-on).
+`src/main/java/com/example/examplemod/registry/` has one `Mod*` class per content type
+(`ModItems`, `ModBlocks`, `ModBlockEntities`, `ModEntities`, `ModSounds`), each wrapping an
+[Architectury API `DeferredRegister`](https://docs.architectury.dev/api/registry) - one
+`register(...)` call reaches Fabric, Forge and NeoForge alike, no per-loader copies needed.
+`ModRegistries.init()` binds all of them to whichever loader is actually running, and is
+already called from `ExampleMod.init()`. To add something:
+
+- **An item**: `ModItems.registerSimple("my_item", new Item.Properties())`.
+- **A block**: `ModBlocks.registerWithItem("my_block", () -> new Block(...), new Item.Properties())`
+  registers the block and its `BlockItem` together (the common case); `registerBlockOnly` skips
+  the item, for the rare block that shouldn't have one.
+- **A block entity, entity, or sound**: `ModBlockEntities`/`ModEntities`/`ModSounds` follow the
+  same pattern - see their Javadoc.
+
+`com.example.examplemod.block.ExampleBlock`/`ExampleBlockEntity` are a worked example tying
+this together end to end: a block that remembers which way it's facing and stores one extra
+value on its block entity. A few things worth knowing going in:
+
+- **Blockstate properties (like `FACING`) and NBT persistence are plain vanilla Minecraft
+  APIs** - Architectury API doesn't (and doesn't need to) get involved, since they're identical
+  on every loader. Where they *do* differ is across Minecraft **versions**, and this template's
+  1.20.1-26.2 range hits a real cluster of them in `BlockEntity`'s save/load alone: a
+  `HolderLookup.Provider` parameter appeared in 1.20.5, `CompoundTag#getInt` started returning
+  `Optional<Integer>` in 1.21.5, and 1.21.6 replaced `CompoundTag` there entirely with a new
+  `ValueInput`/`ValueOutput` abstraction. `Block#use` similarly split into `useItemOn`/
+  `useWithoutItem` in 1.20.5, and `Level#isClientSide` went from a public field to a private
+  one (with an accessor method) in 1.21.2. Each is a Stonecutter `//? if` block (see
+  `ExampleBlockEntity`/`ExampleBlock`), not a new abstraction - `ModSounds` has a smaller third
+  example (`ResourceLocation`'s constructor going private in 1.21, then the class itself being
+  renamed to `Identifier` in 26.1). Reach for one only where you've actually hit a real
+  difference, the same as everywhere else in this template.
+- **`BlockEntityType` construction is the one spot with no shared answer at all.** 1.21.2
+  removed `BlockEntityType.Builder` and privatized `BlockEntityType`'s constructor, with no
+  vanilla public replacement; Fabric API and NeoForge each patch in their own widened path
+  instead (Fabric API's `FabricBlockEntityTypeBuilder`, NeoForge's own access-transformed
+  constructor - see [the Fabric](https://docs.fabricmc.net/develop/blocks/block-entities) and
+  [NeoForge](https://docs.neoforged.net/docs/blockentities/) docs), and neither is reachable
+  from shared `common` code. `ModBlockEntities.newType` reaches through reflection for 1.21.2+
+  instead of duplicating registration per loader - see its Javadoc. Worth knowing this exists
+  before you build much on top of it.
+- **Arbitrary extra data beyond blockstate/NBT** (Forge Capabilities, NeoForge Data Attachments,
+  Fabric's own attachment API) is deliberately *not* abstracted here - the three loaders'
+  systems differ enough that Architectury API doesn't unify them either. Plain BlockEntity/Entity
+  NBT (or, from 1.20.5, ItemStack `DataComponent`s) covers the vast majority of cases and is
+  fully portable; reach for a loader's native system directly only if you outgrow that.
+
+Client-only registration (renderers, render types, ...) is written once, in
+`com.example.examplemod.client.ExampleModClient` (Architectury API's client registries are
+loader-agnostic too - only the entry point calling them differs), and invoked from each
+loader's own client entry point: `ExampleModFabricClient` (a Fabric `ClientModInitializer`,
+registered in `fabric.mod.json`'s `"client"` entrypoints) and
+`ExampleModForgeClient`/`ExampleModNeoForgeClient` (a `Dist.CLIENT`-gated
+`@EventBusSubscriber` listening for `FMLClientSetupEvent`). It has no real call to make yet
+(`ExampleBlock` needs no special rendering) - `RenderTypeRegistry`'s own render-layer type was
+itself mid-rewrite across this template's newest supported versions (`RenderType` became
+`ChunkSectionLayer` in 1.21.2, and that API kept moving at least as far as 1.21.11), so a call
+here would mean chasing a moving target for no real benefit. Add one (with a Stonecutter split
+if it still differs across your supported versions) once you have a block or entity that
+actually needs a renderer.
+
+**Not covered here**: adding items to an existing vanilla creative-mode tab. It's one of the
+more version-volatile corners of the API across this template's Minecraft range, so it's left
+as a follow-up rather than a shaky abstraction - check
+[Architectury's `CreativeTabRegistry`](https://docs.architectury.dev/) and the vanilla
+`BuildCreativeModeTabContentsEvent`/`ItemGroupEvents` for the current state per loader when you
+need it.
+
+## Data generation
+
+Block/item models, blockstates, recipes and loot tables all live in `datagen/`, a small,
+standalone Gradle module - deliberately **not** part of the `stonecutter {}` block in
+`settings.gradle.kts`, so it's outside the version/loader matrix entirely and never touches
+`chiseledBuild`. That's a deliberate choice, not an oversight:
+
+- **Datagen is a dev-time-only tool.** It produces static JSON once; that JSON then ships,
+  completely unmodified, as ordinary resources in every Minecraft version this template
+  targets. It never needs to run again just because you're building for a different version.
+- **The JSON formats are stable**; the *generator Java API* that produces them isn't. Building
+  this module surfaced real churn on top of everything else in this README - block/item model
+  generation alone moved packages between older versions and 26.x. Making datagen code live in
+  Stonecutter's shared `src/` trees (compiled once per Minecraft version, like everything else
+  here) would mean fighting that churn across models, blockstates, recipes *and* loot tables,
+  for no real benefit, since the output doesn't change. `datagen/` is pinned to one fixed
+  version (currently 1.21.1, matching `stonecutter active` - see `datagen/build.gradle.kts`,
+  which reads it from `versions/1.21.1/gradle.properties` rather than duplicating it) and never
+  needs a `//? if`.
+- **The output is loader-agnostic vanilla data**, so there's no need for three separate
+  (Fabric/Forge/NeoForge) datagen implementations either. `datagen/` uses Fabric's
+  well-documented, Gradle-integrated tooling (`fabricApi { configureDataGeneration() }` +
+  `FabricRecipeProvider`/`FabricModelProvider`/`FabricBlockLootTableProvider`) purely because
+  it's the most convenient way to produce the JSON - Forge/NeoForge don't need their own copy
+  of it.
+
+Running it:
+
+```sh
+./gradlew :datagen:runDatagen      # writes JSON into datagen/src/main/generated/ (gitignored)
+./gradlew :datagen:copyGenerated   # runs the above, then copies it into fabric/, forge/ and
+                                    # neoforge/'s real (committed) resources - the one piece of
+                                    # automation replacing a manual "copy it three times" step
+```
+
+`datagen/src/main/java/.../datagen/DatagenContent.java` is the one thing worth understanding
+before extending this: since `datagen/` is standalone, it has no dependency on the real,
+per-version `common` project, so it can't reference `ModBlocks.EXAMPLE_BLOCK` etc. directly.
+Instead it registers its own throwaway `Block`/`Item` instances under the exact same ids
+(`examplemod:example_block`, `examplemod:example_item`) purely so the provider APIs have
+something to point at - **not** the real registered content. Add a matching entry there
+whenever you add real content that needs data generation, and a provider method alongside the
+existing `example_block`/`example_item` ones to generate its model/recipe/loot table.
+
+Two things that tripped this up and are worth knowing:
+
+- `datagen/`'s own `fabric.mod.json` deliberately shares the real mod's `modId` (harmless -
+  this module never ships and never runs alongside the real one) - without that, Fabric's
+  datagen tooling namespaces generated files under *this module's own* id
+  (`examplemod-datagen`) instead of the real mod's, which would generate everything under a
+  namespace nothing ever loads.
+- The throwaway `Block`/`Item` instances need to be registered *early* - referencing
+  `DatagenContent` for the first time only when a provider actually runs (rather than earlier,
+  during normal mod init) hits `IllegalStateException: This registry can't create intrusive
+  holders`, because by then vanilla's registries have already frozen that pathway. That's why
+  `ExampleModDataGenerator` also implements plain `ModInitializer` and touches
+  `DatagenContent` there, not just from inside `onInitializeDataGenerator`.
+
+**Textures aren't data-generated** - datagen only ever produces JSON, never images - so
+`example_block`'s and `example_item`'s placeholder textures
+(`assets/examplemod/textures/{block,item}/example_*.png`) are hand-placed directly in each
+loader's resources, not part of `datagen/`'s output.
+
+**After renaming this template** (see "Using this template" above): `setup.py` renames
+`datagen/`'s source and its own `fabric.mod.json` along with everything else, but it doesn't
+touch already-generated resources sitting in `fabric/`/`forge/`/`neoforge/` - re-run
+`./gradlew :datagen:runDatagen :datagen:copyGenerated` afterward so they pick up the new id.
+
+## A `//? if` editing gotcha
+
+The Minecraft version set active via `stonecutter active "..."` in `stonecutter.gradle.kts`
+(currently `1.21.1`) compiles its `:<version>` (and `fabric:<version>`/`neoforge:<version>`/
+`forge:<version>`) project **directly from the raw `src/main/java/...` tree** - unlike every
+*other* version, which gets its own copy generated into
+`versions/<mc>/build/generated/stonecutter/...`, with `//? if` conditionals correctly
+re-evaluated against that target version regardless of which branch happens to be textually
+"live" (uncommented) in the shared source.
+
+So: when hand-authoring a new `//? if <condition> { live } else { /* dead */ }` block directly
+in an editor (rather than through Stonecutter's own "switch active version" mechanism), **the
+branch left uncommented has to match whatever's true for the currently active version**, or
+`./gradlew :<activeVersion>:compileJava` (and therefore `chiseledBuild`) fails on just that one
+project - while every other version's generated copy still builds correctly, since the
+generator re-derives the right branch from the condition text regardless of what's live in the
+source. This is easy to misdiagnose as a comment-syntax problem (`else if` support, nesting,
+...) when it's actually just this active-project staleness quirk; `else if` chains inside a
+`//? if` block do work correctly once generated for a non-active version.
+
+Practically: after adding or editing a `//? if` block by hand, check which branch is true for
+whatever version is currently active and make sure *that* one is uncommented before building -
+or just run the full build (`./gradlew chiseledBuild --no-parallel --continue` surfaces every
+broken version at once instead of stopping at the first one) and fix whichever single
+active-version project fails.
+
+## Vanilla API breaks by Minecraft version (1.20.1 → 26.2)
+
+Building the worked example above (`ExampleBlock`/`ExampleBlockEntity`/`ModBlockEntities`/
+`ModSounds`) across this template's full version range surfaced more vanilla API churn than
+expected - each cutoff below was confirmed against the real compiler, not just changelogs, and
+is already encoded as a `//? if` in the corresponding file. Reuse these boundaries (don't
+re-derive them) for any new content that touches the same APIs:
+
+- **1.20.5**: `BlockEntity#saveAdditional`/`loadAdditional` gained a `HolderLookup.Provider`
+  parameter. `Block#use` split into `useItemOn` (item in hand) and `useWithoutItem` (empty
+  hand, no `InteractionHand` param).
+- **~1.21 (before 1.21.2)**: `ResourceLocation`'s constructor went private in favour of
+  `ResourceLocation.fromNamespaceAndPath(...)`.
+- **1.21.2**: `Level#isClientSide` went from a public field to a private one with an
+  `isClientSide()` accessor method instead. `BlockEntityType.Builder` was removed *and*
+  `BlockEntityType`'s constructor was privatized, with **no vanilla public replacement** -
+  Fabric API (`FabricBlockEntityTypeBuilder`) and NeoForge (its own access-transformed
+  constructor) each patch in their own loader-specific path; there's no call shared `common`
+  code can make. `ModBlockEntities.newType` reaches through reflection
+  (`BlockEntityType.class.getDeclaredConstructor(...).setAccessible(true)`) instead for
+  1.21.2+, to keep block entity registration in one shared call rather than splitting it per
+  loader - worth knowing this exists before building much on top of it.
+- **1.21.5**: `CompoundTag#getInt` (and presumably sibling getters) started returning
+  `Optional<Integer>` instead of a plain `int`.
+- **1.21.6**: `BlockEntity#saveAdditional`/`loadAdditional` fully replaced the
+  `CompoundTag`-based signature with `ValueOutput`/`ValueInput`
+  (`net.minecraft.world.level.storage`) - `putInt`/`getIntOr` instead of
+  `tag.putInt`/`tag.getInt`.
+- **26.1** (the first non-obfuscated release, following 1.21.11 which this template doesn't
+  target directly): `ResourceLocation` was renamed to `Identifier` everywhere.
+- **~1.21.2 onward, still moving as of 1.21.11**: `RenderType` (terrain/block render layers)
+  was replaced by `ChunkSectionLayer`, and that API kept changing at least through
+  1.21.10→1.21.11 (`CUTOUT_MIPPED` removed, naming changes) - see `ExampleModClient` for why
+  that's deliberately left uncalled here rather than chased further.
+
+Also worth knowing before searching for it: Architectury API's registry package is
+`dev.architectury.registry.registries` (**plural** "registries") as of API 9.x-21.x (this
+template's whole range) - `dev.architectury.registry.registry` (singular) doesn't exist,
+despite showing up in some older docs/tutorials that predate the rename.

@@ -12,6 +12,9 @@
   "entrypoints": {
     "main": [
       "com.example.examplemod.fabric.ExampleModFabric"
+    ],
+    "client": [
+      "com.example.examplemod.fabric.ExampleModFabricClient"
     ]
   },
   "depends": {
