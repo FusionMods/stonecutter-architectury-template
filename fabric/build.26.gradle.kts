@@ -40,6 +40,22 @@ repositories {
     maven("https://maven.shedaniel.me/") // Cloth Config
 }
 
+// See the longer comment in fabric/build.gradle.kts (and README.md's "Testing" section) -
+// this needs to be kept in both build scripts, since whichever one is actually in use
+// depends on which Minecraft version is `stonecutter active`. Not separately verified
+// against this file's `dev.architectury.loom-no-remap` variant specifically (only ever
+// exercised once a 26.1+ version is made active) - if it doesn't work here, that's the
+// first thing to check.
+if (stonecutter.current.isActive) {
+    fabricApi {
+        configureTests {
+            createSourceSet = true
+            enableGameTests = true
+            eula = true
+        }
+    }
+}
+
 // See the comment in fabric/build.gradle.kts: these live in
 // versions/26.2/gradle.properties, only an ancestor of `common`.
 val fabricLoaderVersion = common.property("fabricLoaderVersion") as String

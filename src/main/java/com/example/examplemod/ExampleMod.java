@@ -1,5 +1,6 @@
 package com.example.examplemod;
 
+import com.example.examplemod.network.ModNetworking;
 import com.example.examplemod.registry.ModRegistries;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,6 +37,7 @@ public final class ExampleMod {
     /** Called once by every loader's entry point, after that loader's own setup. */
     public static void init() {
         ModRegistries.init();
+        ModNetworking.init();
         LOGGER.info("Example Mod ({}) initialized", MOD_ID);
     }
 }

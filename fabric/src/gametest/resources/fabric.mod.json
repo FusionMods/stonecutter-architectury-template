@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "examplemod-test",
+  "version": "1.0.0",
+  "name": "Example Mod (GameTest)",
+  "description": "GameTests for Example Mod - see README.md's \"Testing\" section. Never published, only ever run through ./gradlew :fabric:<activeVersion>:runGametest / as part of a normal build.",
+  "environment": "*",
+  "entrypoints": {
+    "fabric-gametest": [
+      "com.example.examplemod.fabric.gametest.ExampleModGameTest"
+    ]
+  },
+  "depends": {
+    "examplemod": "*",
+    "fabricloader": "*",
+    "fabric-api": "*",
+    "minecraft": "*"
+  }
+}

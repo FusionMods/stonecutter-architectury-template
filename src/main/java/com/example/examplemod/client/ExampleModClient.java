@@ -1,5 +1,6 @@
 package com.example.examplemod.client;
 
+import com.example.examplemod.network.ModNetworking;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 
@@ -29,6 +30,11 @@ import net.fabricmc.api.Environment;
  * just to have one would mean chasing a moving target for no real benefit - add it (and a
  * Stonecutter split, if the exact call still differs across your supported versions) once
  * you have a block that actually needs one.
+ *
+ * <p>{@link ModNetworking#initClient()} <b>does</b> have a real call to make: registering an
+ * S2C packet's receiver has to happen from client-only code like this, not from
+ * {@link com.example.examplemod.ExampleMod#init()} - see its Javadoc for the (real, caught by
+ * this template's GameTests) crash that happens otherwise.
  */
 @Environment(EnvType.CLIENT)
 public final class ExampleModClient {
@@ -37,5 +43,6 @@ public final class ExampleModClient {
 
     /** Called once by every loader's client entry point, after that loader's own client setup. */
     public static void init() {
+        ModNetworking.initClient();
     }
 }

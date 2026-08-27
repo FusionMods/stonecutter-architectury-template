@@ -126,6 +126,9 @@ add both the file and the `modLicense` value before publishing anything.
 ├── forge/      src/.../forge/ExampleModForge.java                   # Forge entry point + mods.toml (1.20.1 only)
 ├── neoforge/   src/.../neoforge/ExampleModNeoForge.java              # NeoForge entry point + neoforge.mods.toml
 ├── versions/<mcVersion>/gradle.properties   # per-version dependency numbers (see "Building" below)
+├── datagen/    src/.../datagen/ExampleModDataGenerator.java          # standalone datagen module - see "Data generation" below
+├── fabric/     src/gametest/.../ExampleModGameTest.java              # GameTests, active version only - see "Testing" below
+├── .github/workflows/build.yml # CI: chiseledBuild + datagen, on every push/PR - see "Continuous integration" below
 ├── build.gradle.kts            # "common" build script for 1.20.1 & 1.21.1 (26.1+ uses build.26.gradle.kts)
 ├── fabric/build.gradle.kts     # Fabric build script for 1.20.1 & 1.21.1 (26.1+ uses fabric/build.26.gradle.kts)
 ├── forge/build.gradle.kts      # Forge build script (1.20.1 only)
@@ -216,6 +219,29 @@ drift. Check each loader's latest before a release build: Fabric Loader/API at
 at [files.minecraftforge.net](https://files.minecraftforge.net/), Architectury API at
 [github.com/architectury/architectury-api](https://github.com/architectury/architectury-api/releases).
 
+## Continuous integration
+
+`.github/workflows/build.yml` runs on every push to `main` and every PR:
+
+- `./gradlew chiseledBuild --no-parallel` - the same full version/loader matrix build used
+  throughout local development, catching a change that quietly breaks one specific
+  (version, loader) combination. This also runs the GameTests under "Testing" above for free -
+  `:fabric:<activeVersion>:build` (one of the many builds `chiseledBuild` chains together)
+  depends on `runGameTest` once `configureTests` is applied, so no separate CI step is needed
+  for that.
+- `./gradlew :datagen:runDatagen` then `:datagen:copyGenerated`, failing the job if that
+  changes anything under `fabric/`, `forge/` or `neoforge/`'s resources - a safety net for
+  the "changed `DatagenContent`/a provider but forgot to re-run and commit the regenerated
+  JSON" mistake (see "Data generation" above).
+
+It only needs one JDK to launch Gradle itself (`actions/setup-java`, currently 25) - the
+[foojay toolchain resolver](https://github.com/gradle/foojay-toolchains) plugin already wired
+up in `settings.gradle.kts` auto-downloads whichever per-version JDK (17/21/25, see each
+`versions/<mcVersion>/gradle.properties`) each subproject actually needs, the same as it does
+for a local build. Nothing here publishes anything - see `stonecutter.gradle.kts` and the
+`publish.dryRun` property in `gradle.properties` for that, which is deliberately left as a
+manual, local step rather than wired into CI.
+
 ## Adding a fourth Minecraft version
 
 1. Add a `versions/<mcVersion>/gradle.properties` with that version's `javaVersion` and loader/API
@@ -292,17 +318,99 @@ here would mean chasing a moving target for no real benefit. Add one (with a Sto
 if it still differs across your supported versions) once you have a block or entity that
 actually needs a renderer.
 
-**Not covered here**: adding items to an existing vanilla creative-mode tab. It's one of the
-more version-volatile corners of the API across this template's Minecraft range, so it's left
-as a follow-up rather than a shaky abstraction - check
-[Architectury's `CreativeTabRegistry`](https://docs.architectury.dev/) and the vanilla
-`BuildCreativeModeTabContentsEvent`/`ItemGroupEvents` for the current state per loader when you
-need it.
+### Creative tabs
+
+`registry/ModCreativeTabs.java` is a small worked example of
+[Architectury API's `CreativeTabRegistry`](https://docs.architectury.dev/api/registry#creative-tabs) -
+unlike `ModItems`/`ModBlocks`, this needs no `DeferredRegister` wrapper: `CreativeTabRegistry.create(...)`
+both builds and registers a `CreativeModeTab` in one eager call (creative tabs don't need
+Forge/NeoForge's deferred `RegisterEvent` timing the way blocks/items do), so a plain static field
+is enough. `CreativeTabRegistry.appendBuiltin(tab, ModItems.MY_ITEM)` adds an entry - pass the
+`RegistrySupplier` itself (not `.get()` on it) so it's only resolved once the creative inventory
+is actually opened, long after every registry has finished loading; resolving eagerly risks the
+same registration-timing trap `ExampleModDataGenerator`'s Javadoc documents for datagen's own
+throwaway content (there it's vanilla's intrusive-holder freeze, here it'd be Forge/NeoForge's
+`RegisterEvent` not having fired yet).
+
+This one call shape (`CreativeTabRegistry.create(Component, Supplier<ItemStack>)`) is unusually
+stable for this template's range - confirmed unchanged from Architectury API 9.2.14 (1.20.1) through
+21.0.7 (26.2) by diffing `CreativeTabRegistry`'s source across both branches - so no Stonecutter
+`//? if` split was needed here at all, unlike almost everything else non-trivial in this template.
+
+## Networking
+
+`network/ModNetworking.java` is a worked example of
+[Architectury API's `NetworkManager`](https://docs.architectury.dev/api/networking) - one
+`registerReceiver`/`sendToPlayer` call reaches Fabric, Forge and NeoForge alike, same idea as the
+`registry` package's `DeferredRegister` wrappers. It ties into the `ExampleBlock`/`ExampleBlockEntity`
+example: when a player clicks the block, the server increments the block entity's counter (as
+before) and now also sends that player's client a packet with the new value, the common
+"server changed some data, tell the client" pattern - deliberately just a point-to-point
+notification, not full initial-chunk-load sync (that's `BlockEntity#getUpdatePacket()`/
+`#getUpdateTag(...)`, out of scope for this worked example).
+
+This *is* the one spot in this template that hits a genuine Minecraft **version** difference of
+real substance, not just a narrow one-method signature change: 1.20.5 replaced the old raw
+`FriendlyByteBuf`, `ResourceLocation`-keyed packet model with typed `CustomPacketPayload` records
+encoded via `StreamCodec` (see the
+[NeoForge networking docs](https://docs.neoforged.net/docs/networking/payload/) for the shape).
+Nothing loader-specific about that - Architectury API's `NetworkManager` covers both shapes
+identically across all three loaders - so it's a Stonecutter `//? if >=1.20.5` split (with the whole
+packet class, registration and send call duplicated per branch, not just a method body), the same
+reasoning as `ModSounds`, which separately hits the `ResourceLocation`/`Identifier` rename
+`ModNetworking#id` also handles. Adding a second packet means adding a second pair of branches next
+to this one, following the same shape.
+
+**Registering an S2C receiver has a real trap in it**, found (and only findable) by actually
+booting a server - see "Testing" below. `ModNetworking.init()` (called from both physical sides,
+via `ExampleMod.init()`) only registers the packet's *type*; the actual receiver is registered
+separately from `ModNetworking.initClient()`, called only from `ExampleModClient.init()` (which by
+construction never runs on a dedicated server). Registering an S2C receiver from code that runs on
+*both* sides crashes a dedicated server outright on Fabric with `AbstractMethodError: ...
+NetworkAggregator$Adaptor ... registerS2C` - a real, still-open upstream report
+([architectury-api#518](https://github.com/architectury/architectury-api/issues/518)) confirms this
+isn't specific to this template. A C2S packet has the opposite shape: register its receiver from
+`ModNetworking.init()` (the server needs it, the client doesn't), never from the client-only class.
+
+## Testing
+
+`fabric/src/gametest/` holds [GameTests](https://docs.fabricmc.net/develop/automatic-testing) for
+the `ExampleBlock`/`ExampleBlockEntity`/`ModNetworking` worked example - `ExampleModGameTest` boots
+a real dedicated server and checks actual behavior (does placing the block record the right
+`FACING`, does clicking it increment the counter), not just that things compile.
+`chiseledBuild`/`fabric/build.gradle.kts`'s other checks never exercise this template's code at
+runtime at all - and that gap is exactly what caught two real bugs while building this template:
+a `ModRegistries` bulk-registration ordering bug (see its Javadoc) and the S2C receiver
+registration trap documented under "Networking" above, neither of which showed up as a compile
+error anywhere. Worth internalizing before assuming a green `chiseledBuild` means a change
+actually *works*.
+
+**Fabric only, and only for whichever Minecraft version is currently `stonecutter active`** - see
+the comment above `fabricApi { configureTests { ... } }` in `fabric/build.gradle.kts` for the
+reasoning (a full dedicated-server boot per version, x20 versions, isn't worth it when the
+`common` code under test is identical across every loader/version by construction - cross-version/
+cross-loader *compile* safety still comes from `chiseledBuild`). This follows
+`stonecutter active "..."` automatically via `stonecutter.current.isActive` if that ever changes,
+so there's nothing to move by hand.
+
+Running it:
+
+```sh
+./gradlew :fabric:1.21.1:runGameTest   # swap in whichever version is currently active
+./gradlew build                        # also runs it - see the `build` task's dependency on
+                                        # `runGameTest` once `configureTests` is applied
+```
+
+Add a new `@GameTest`-annotated method to `ExampleModGameTest` for new content - `EMPTY_STRUCTURE`
+(Fabric API's bundled empty test area) covers most cases without needing a custom structure NBT
+file; see [Fabric's GameTest docs](https://docs.fabricmc.net/develop/automatic-testing) for
+structure-based tests, client-side GameTests (`enableClientGameTests`, not enabled here), and
+`GameTestHelper`'s full assertion API.
 
 ## Data generation
 
-Block/item models, blockstates, recipes and loot tables all live in `datagen/`, a small,
-standalone Gradle module - deliberately **not** part of the `stonecutter {}` block in
+Block/item models, blockstates, recipes, loot tables and language (`en_us.json`) entries all
+live in `datagen/`, a small, standalone Gradle module - deliberately **not** part of the `stonecutter {}` block in
 `settings.gradle.kts`, so it's outside the version/loader matrix entirely and never touches
 `chiseledBuild`. That's a deliberate choice, not an oversight:
 
@@ -341,7 +449,8 @@ Instead it registers its own throwaway `Block`/`Item` instances under the exact 
 (`examplemod:example_block`, `examplemod:example_item`) purely so the provider APIs have
 something to point at - **not** the real registered content. Add a matching entry there
 whenever you add real content that needs data generation, and a provider method alongside the
-existing `example_block`/`example_item` ones to generate its model/recipe/loot table.
+existing `example_block`/`example_item` ones to generate its model/recipe/loot table/lang entry
+(`ExampleModLanguageProvider`).
 
 Two things that tripped this up and are worth knowing:
 

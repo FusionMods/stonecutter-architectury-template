@@ -43,6 +43,25 @@ loom {
     silentMojangMappingsLicense()
 }
 
+// GameTests (fabric/src/gametest/ - see README.md's "Testing" section) only for whichever
+// version is currently `stonecutter active` - they verify real in-game *behavior*, not just
+// that things compile, so unlike everything else in this template they can't be trivially
+// shared across every targeted Minecraft version: running a full dedicated-server boot per
+// version, x20 versions, would make every build far slower for comparatively little extra
+// coverage, since `common` code (what these tests actually exercise) is identical across
+// loaders/versions by construction. `stonecutter.current.isActive` is true for exactly one
+// generated project at a time, so this follows `stonecutter active "..."` in
+// stonecutter.gradle.kts automatically if that ever changes.
+if (stonecutter.current.isActive) {
+    fabricApi {
+        configureTests {
+            createSourceSet = true
+            enableGameTests = true
+            eula = true
+        }
+    }
+}
+
 // javaVersion/fabricLoaderVersion/fabricApiVersion/architecturyApiVersion/
 // clothConfigVersion live in versions/<mcVersion>/gradle.properties, which -
 // unlike this repo's root gradle.properties - is only an ancestor directory

@@ -30,5 +30,6 @@ public class ExampleModDataGenerator implements DataGeneratorEntrypoint, ModInit
         pack.addProvider(ExampleModModelProvider::new);
         pack.addProvider(ExampleModRecipeProvider::new);
         pack.addProvider(ExampleModLootTableProvider::new);
+        pack.addProvider(ExampleModLanguageProvider::new);
     }
 }

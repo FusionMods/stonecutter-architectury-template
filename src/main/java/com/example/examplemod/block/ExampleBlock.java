@@ -71,20 +71,26 @@ public class ExampleBlock extends Block implements EntityBlock {
     //? if >=1.20.5 {
     @Override
     protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, net.minecraft.world.entity.player.Player player, net.minecraft.world.phys.BlockHitResult hit) {
-        return interact(level, pos);
+        return interact(level, pos, player);
     }
     //?} else {
     /*
     @Override
     public InteractionResult use(BlockState state, Level level, BlockPos pos, net.minecraft.world.entity.player.Player player, net.minecraft.world.InteractionHand hand, net.minecraft.world.phys.BlockHitResult hit) {
-        return interact(level, pos);
+        return interact(level, pos, player);
     }
     */
     //?}
 
-    private InteractionResult interact(Level level, BlockPos pos) {
+    private InteractionResult interact(Level level, BlockPos pos, net.minecraft.world.entity.player.Player player) {
         if (!isClientSide(level) && level.getBlockEntity(pos) instanceof ExampleBlockEntity blockEntity) {
             blockEntity.incrementCounter();
+            // Server has the authoritative counter; tell the clicking player's client about
+            // it too - see com.example.examplemod.network.ModNetworking for why this needs
+            // an explicit packet rather than "just" a field.
+            if (player instanceof net.minecraft.server.level.ServerPlayer serverPlayer) {
+                com.example.examplemod.network.ModNetworking.sendCounterSync(serverPlayer, pos, blockEntity.getCounter());
+            }
         }
         return InteractionResult.SUCCESS;
     }

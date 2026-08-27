@@ -1,0 +1,49 @@
+name: Build
+
+# Runs the whole 1.20.1-26.2 x Fabric/Forge/NeoForge matrix (chiseledBuild - see
+# stonecutter.gradle.kts) on every push/PR, plus a standalone check that the datagen/
+# module (see README.md's "Data generation" section) still runs. This is the same pair
+# of commands used throughout local development to confirm a change didn't quietly break
+# some other version/loader combination.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# Cancel a still-running run for the same branch/PR once a newer commit shows up.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # One JDK to launch Gradle itself - the foojay toolchain resolver (see
+      # settings.gradle.kts) auto-downloads whichever per-version JDK (17/21/25, see
+      # each versions/<mc>/gradle.properties) each subproject actually needs to compile.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 25
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Build every Minecraft version x loader combination
+        run: ./gradlew chiseledBuild --no-parallel --stacktrace
+
+      - name: Run datagen (recipes/models/blockstates/loot tables/lang - see datagen/)
+        run: ./gradlew :datagen:runDatagen --stacktrace
+
+      - name: Fail if datagen produced uncommitted changes
+        run: |
+          ./gradlew :datagen:copyGenerated --stacktrace
+          git status --porcelain -- fabric/src/main/resources forge/src/main/resources neoforge/src/main/resources
+          if [ -n "$(git status --porcelain -- fabric/src/main/resources forge/src/main/resources neoforge/src/main/resources)" ]; then
+            echo "::error::datagen output doesn't match what's committed - run './gradlew :datagen:runDatagen :datagen:copyGenerated' locally and commit the result."
+            git diff -- fabric/src/main/resources forge/src/main/resources neoforge/src/main/resources
+            exit 1
+          fi

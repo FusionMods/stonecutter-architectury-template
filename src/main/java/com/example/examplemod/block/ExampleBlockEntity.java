@@ -34,6 +34,11 @@ public class ExampleBlockEntity extends BlockEntity {
         setChanged();
     }
 
+    /** Read by {@link ExampleBlock}'s interaction override to sync the new value to the client - see {@link com.example.examplemod.network.ModNetworking}. */
+    public int getCounter() {
+        return counter;
+    }
+
     // Flattened into four independent branches (rather than nesting a second //? split
     // inside one of these) since 1.20.5-1.21.4 and 1.21.5 need the exact same
     // saveAdditional/loadAdditional signature but a different CompoundTag#getInt call -
