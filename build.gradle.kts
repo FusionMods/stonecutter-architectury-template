@@ -1,5 +1,6 @@
-// Stonecutter's "central script" for 1.20.1 and 1.21.1: copied once per
-// version into versions/<mcVersion>/, where it becomes that version's
+// Stonecutter's "central script" for every targeted version through 1.21.11 (see
+// settings.gradle.kts's "Supported versions" - 26.1+ uses build.26.gradle.kts instead):
+// copied once per version into versions/<mcVersion>/, where it becomes that version's
 // `common` project - the classic Architectury common module, shared by
 // that version's fabric/forge/neoforge projects (see their own
 // build.gradle.kts). 26.2 uses build.26.gradle.kts instead - see

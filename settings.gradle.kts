@@ -40,15 +40,17 @@ stonecutter {
     kotlinController = true
 
     create(rootProject) {
-        versions(
-            "1.20.1", "1.20.2", "1.20.4", "1.20.5", "1.20.6",
-            // 1.20.3 is deliberately skipped - Architectury API never published
-            // a Fabric API/NeoForge-backed release for it (only a Fabric-only
-            // beta, since 1.20.4 followed two days later), so it fails this
-            // template's "needs supported Fabric + NeoForge + Architectury"
-            // bar. See README.md.
-            "1.21.1", "1.21.2", "1.21.3", "1.21.4", "1.21.5", "1.21.6", "1.21.7", "1.21.8", "1.21.9", "1.21.10",
-        )
+        // Deliberately excludes three real API-shape "eras" that have no explicitly-wanted
+        // version in them (see README.md's "Vanilla API breaks" table and "Supported
+        // versions" section): 1.20.5/1.20.6, 1.21.2-1.21.4, and 1.21.5 each need their own
+        // unique //? if branch that nothing else here needs, for near-zero real-world
+        // coverage (see README.md for the Modrinth-sourced adoption numbers). Every *other*
+        // point release is kept - it's code-identical to a version already being built here
+        // (1.20.2/1.20.4 to 1.20.1; 1.21.6-1.21.10 to 1.21.11), so keeping it costs a
+        // versions/<mcVersion>/gradle.properties to research and keep current, but no extra
+        // code.
+        versions("1.20.1", "1.20.2", "1.20.4")
+        versions("1.21.1", "1.21.6", "1.21.7", "1.21.8", "1.21.9", "1.21.10", "1.21.11")
         versions("26.1", "26.1.1", "26.1.2", "26.2").buildscript("build.26.gradle.kts")
 
         branch("fabric") {
@@ -57,10 +59,8 @@ stonecutter {
         }
 
         branch("neoforge") {
-            versions(
-                "1.20.2", "1.20.4", "1.20.5", "1.20.6",
-                "1.21.1", "1.21.2", "1.21.3", "1.21.4", "1.21.5", "1.21.6", "1.21.7", "1.21.8", "1.21.9", "1.21.10",
-            )
+            versions("1.20.2", "1.20.4")
+            versions("1.21.1", "1.21.6", "1.21.7", "1.21.8", "1.21.9", "1.21.10", "1.21.11")
             versions("26.1", "26.1.1", "26.1.2", "26.2").buildscript("build.26.gradle.kts")
         }
 

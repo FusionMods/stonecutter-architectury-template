@@ -1,5 +1,5 @@
-// Used for 1.21.11+ - see fabric/build.gradle.kts (and its header comment,
-// and build.26.gradle.kts) for why this one differs.
+// Used for 26.1+ (the year.drop rebrand, not 1.21.11 - see fabric/build.gradle.kts's
+// header comment) - see that file for why this one differs.
 
 plugins {
     id("dev.architectury.loom-no-remap")

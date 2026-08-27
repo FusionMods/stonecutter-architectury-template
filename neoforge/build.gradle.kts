@@ -1,5 +1,7 @@
-// Used for 1.20.2+ - there is no NeoForge build for 1.20.1 (see
-// settings.gradle.kts) and 26.2 uses build.26.gradle.kts instead.
+// Used for every targeted version through 1.21.11 - there is no NeoForge build for 1.20.1
+// (see settings.gradle.kts) and 26.1+ (the year.drop rebrand) uses build.26.gradle.kts
+// instead - see fabric/build.gradle.kts's header comment for why the cutoff is there, not
+// at 1.21.11 itself.
 
 plugins {
     id("dev.architectury.loom")

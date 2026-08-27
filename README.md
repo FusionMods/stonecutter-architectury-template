@@ -9,25 +9,50 @@ shared codebase.
 | 1.20.1  | ✅ | - | ✅ |
 | 1.20.2  | ✅ | ✅ | - |
 | 1.20.4  | ✅ | ✅ | - |
-| 1.20.5  | ✅ | ✅ | - |
-| 1.20.6  | ✅ | ✅ | - |
 | 1.21.1  | ✅ | ✅ | - |
-| 1.21.2  | ✅ | ✅ | - |
-| 1.21.3  | ✅ | ✅ | - |
-| 1.21.4  | ✅ | ✅ | - |
-| 1.21.5  | ✅ | ✅ | - |
 | 1.21.6  | ✅ | ✅ | - |
 | 1.21.7  | ✅ | ✅ | - |
 | 1.21.8  | ✅ | ✅ | - |
 | 1.21.9  | ✅ | ✅ | - |
 | 1.21.10 | ✅ | ✅ | - |
+| 1.21.11 | ✅ | ✅ | - |
 | 26.1    | ✅ | ✅ | - |
 | 26.1.1  | ✅ | ✅ | - |
 | 26.1.2  | ✅ | ✅ | - |
 | 26.2    | ✅ | ✅ | - |
 
-1.20.3 is deliberately absent: Architectury API never published a real (Fabric API + NeoForge-backed)
-release for it.
+## Supported versions
+
+This is a deliberately **pruned** set, not "every point release since 1.20.1" - see
+`settings.gradle.kts`'s `stonecutter { create(rootProject) { ... } }` block, the actual source of
+truth. Two things drove the cut:
+
+- **Excludes three real API-shape "eras" that have no explicitly-wanted version in them**, not
+  every point release. Every Minecraft version this template's `common` code actually has to
+  compile against falls into one of a handful of eras separated by the boundaries in "Vanilla API
+  breaks" below (1.20.5, ~1.21, 1.21.2, 1.21.6, 1.21.11) - versions inside the same era are
+  code-identical, needing no extra `//? if` branches to support. 1.20.5/1.20.6, 1.21.2-1.21.4, and
+  1.21.5 each need their own unique branch that nothing else here needs, for near-zero real-world
+  coverage (see the adoption numbers below) - those three eras are dropped entirely. Every *other*
+  point release is kept: it's code-identical to a version already being built (1.20.2/1.20.4 to
+  1.20.1; 1.21.6-1.21.10 to 1.21.11), so keeping it costs a real
+  `versions/<mcVersion>/gradle.properties` to research and keep current, but no extra code. (1.20.3
+  was *always* absent, for a different reason: Architectury API never published a real Fabric API +
+  NeoForge-backed release for it.)
+- **Real adoption data informed which eras were worth keeping at all**, not just "newest wins".
+  Queried live from [Modrinth's search API](https://api.modrinth.com/v2/search) (faceted
+  `total_hits` per `versions:<mc>` facet, against ~74k mods total): **1.20.1** (33,795 mods, 45.7%)
+  and **1.21.1** (30,374, 41.1%) are each, independently, the clear leader of their era, and
+  adoption drops off fast after - 1.21.4 sits at 23.1%, 1.21.10 at 19.8%, the whole 26.x line at
+  14.8%. The two oldest, best-established versions this template targets are also the two
+  most-used ones in the wild, not a coincidence worth fighting.
+
+Re-adding one of the three dropped eras (1.20.5/1.20.6, 1.21.2-1.21.4, or 1.21.5) means adding it
+to `settings.gradle.kts`'s `versions(...)` calls, adding its
+`versions/<mcVersion>/gradle.properties` (copy the nearest era's and update the dependency
+numbers), *and* re-adding the matching `//? if` branch it needs (see the comments left where they
+were removed, e.g. `ExampleBlockEntity`'s class doc) - unlike every other version here, these
+three genuinely need one.
 
 ## Getting started
 
@@ -242,7 +267,10 @@ for a local build. Nothing here publishes anything - see `stonecutter.gradle.kts
 `publish.dryRun` property in `gradle.properties` for that, which is deliberately left as a
 manual, local step rather than wired into CI.
 
-## Adding a fourth Minecraft version
+## Adding another Minecraft version
+
+Also the process for re-adding one of the point releases "Supported versions" above deliberately
+dropped:
 
 1. Add a `versions/<mcVersion>/gradle.properties` with that version's `javaVersion` and loader/API
    versions (see the links just above for where to check current numbers).
@@ -287,7 +315,7 @@ value on its block entity. A few things worth knowing going in:
   one (with an accessor method) in 1.21.2. Each is a Stonecutter `//? if` block (see
   `ExampleBlockEntity`/`ExampleBlock`), not a new abstraction - `ModSounds` has a smaller third
   example (`ResourceLocation`'s constructor going private in 1.21, then the class itself being
-  renamed to `Identifier` in 26.1). Reach for one only where you've actually hit a real
+  renamed to `Identifier` in 1.21.11). Reach for one only where you've actually hit a real
   difference, the same as everywhere else in this template.
 - **`BlockEntityType` construction is the one spot with no shared answer at all.** 1.21.2
   removed `BlockEntityType.Builder` and privatized `BlockEntityType`'s constructor, with no
@@ -387,7 +415,7 @@ actually *works*.
 
 **Fabric only, and only for whichever Minecraft version is currently `stonecutter active`** - see
 the comment above `fabricApi { configureTests { ... } }` in `fabric/build.gradle.kts` for the
-reasoning (a full dedicated-server boot per version, x20 versions, isn't worth it when the
+reasoning (a full dedicated-server boot per targeted version isn't worth it when the
 `common` code under test is identical across every loader/version by construction - cross-version/
 cross-loader *compile* safety still comes from `chiseledBuild`). This follows
 `stonecutter active "..."` automatically via `stonecutter.current.isActive` if that ever changes,
@@ -525,13 +553,19 @@ re-derive them) for any new content that touches the same APIs:
   1.21.2+, to keep block entity registration in one shared call rather than splitting it per
   loader - worth knowing this exists before building much on top of it.
 - **1.21.5**: `CompoundTag#getInt` (and presumably sibling getters) started returning
-  `Optional<Integer>` instead of a plain `int`.
+  `Optional<Integer>` instead of a plain `int`. Not currently targeted (see "Supported
+  versions" above) - the corresponding branch was removed from `ExampleBlockEntity`, with a
+  comment showing how to re-add it if you bring 1.21.5 back.
 - **1.21.6**: `BlockEntity#saveAdditional`/`loadAdditional` fully replaced the
   `CompoundTag`-based signature with `ValueOutput`/`ValueInput`
   (`net.minecraft.world.level.storage`) - `putInt`/`getIntOr` instead of
   `tag.putInt`/`tag.getInt`.
-- **26.1** (the first non-obfuscated release, following 1.21.11 which this template doesn't
-  target directly): `ResourceLocation` was renamed to `Identifier` everywhere.
+- **1.21.11**, *not* 26.1: `ResourceLocation` was renamed to `Identifier` everywhere - the
+  rename landed one version before the year.drop rebrand, not with it. Easy to get wrong by
+  extrapolating from the class name alone (26.1 being "the first non-obfuscated release" reads
+  like a plausible place for a mapping-visible rename to land) - this template's own `ModSounds`/
+  `ModNetworking` briefly had the boundary set at `>=26.1` too, until actually adding 1.21.11 to
+  the matrix (see "Supported versions") produced a real compile failure that placed it correctly.
 - **~1.21.2 onward, still moving as of 1.21.11**: `RenderType` (terrain/block render layers)
   was replaced by `ChunkSectionLayer`, and that API kept changing at least through
   1.21.10→1.21.11 (`CUTOUT_MIPPED` removed, naming changes) - see `ExampleModClient` for why

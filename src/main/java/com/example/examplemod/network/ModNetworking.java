@@ -128,7 +128,7 @@ public final class ModNetworking {
     }
 
     // Same ResourceLocation -> Identifier rename ModSounds#id hits - see its doc comment.
-    //? if >=26.1 {
+    //? if >=1.21.11 {
     /*
     private static net.minecraft.resources.Identifier id(String path) {
         return net.minecraft.resources.Identifier.fromNamespaceAndPath(ExampleMod.MOD_ID, path);

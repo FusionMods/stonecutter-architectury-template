@@ -10,11 +10,13 @@ import net.minecraft.sounds.SoundEvent;
  * Cross-loader sound registry, same {@link DeferredRegister} pattern as
  * {@link ModItems}/{@link ModBlocks}. {@link #id} is the one spot this hits a genuine
  * Minecraft *version* difference, and it's actually two: 1.21 made {@code ResourceLocation}'s
- * constructor private in favour of a {@code fromNamespaceAndPath} factory, and 26.1 (the
- * first non-obfuscated release) renamed the whole class to {@code Identifier} - neither is
- * a loader difference, so both are Stonecutter {@code //? if} blocks, not another
- * abstraction. The return type itself changes between branches, so the whole method
- * declaration (not just its body) is duplicated per branch below.
+ * constructor private in favour of a {@code fromNamespaceAndPath} factory, and 1.21.11
+ * renamed the whole class to {@code Identifier} (confirmed by bisecting a real compile
+ * failure - not 26.1 as the class name might suggest; the rename landed one version before
+ * the year.drop rebrand, not with it) - neither is a loader difference, so both are
+ * Stonecutter {@code //? if} blocks, not another abstraction. The return type itself changes
+ * between branches, so the whole method declaration (not just its body) is duplicated per
+ * branch below.
  */
 public final class ModSounds {
     public static final DeferredRegister<SoundEvent> SOUNDS =
@@ -28,7 +30,7 @@ public final class ModSounds {
         return SOUNDS.register(name, () -> SoundEvent.createVariableRangeEvent(id(name)));
     }
 
-    //? if >=26.1 {
+    //? if >=1.21.11 {
     /*
     private static net.minecraft.resources.Identifier id(String path) {
         return net.minecraft.resources.Identifier.fromNamespaceAndPath(ExampleMod.MOD_ID, path);

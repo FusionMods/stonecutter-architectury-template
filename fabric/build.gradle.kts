@@ -1,4 +1,7 @@
-// Used for 1.20.1 to 1.21.10 - see fabric/build.26.gradle.kts for 1.21.11+
+// Used for every targeted version through 1.21.11 - see fabric/build.26.gradle.kts for 26.1+
+// (confirmed empirically: 1.21.11 - the last version before the year.drop rebrand - still
+// builds fine through this regular, remap-based script; it's 26.1's obfuscation removal that
+// needs the no-remap variant, not anything about 1.21.11 itself).
 
 plugins {
     id("dev.architectury.loom")

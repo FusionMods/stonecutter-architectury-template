@@ -1,4 +1,4 @@
-// Stonecutter's central script for 26.2 specifically (see
+// Stonecutter's central script for the whole 26.x line (26.1, 26.1.1, 26.1.2, 26.2 - see
 // settings.gradle.kts): Minecraft removed Java Edition obfuscation starting
 // with the 26.x (year.drop) versions
 // (minecraft.net/en-us/article/removing-obfuscation-in-java-edition), so
